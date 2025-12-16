@@ -386,10 +386,7 @@ out:
 		ssize_t sz;
 
 		memset(extensions, 0, sizeof(extensions));
-		while (1) {
-			token = strsep(&name, ",");
-			if (!token)
-				break;
+		while ((token = strsep(&name, ",")) != NULL) {
 			sz = strlen(token);
 			if (sz == 0)
 				continue;
