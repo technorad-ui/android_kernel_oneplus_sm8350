@@ -23,20 +23,26 @@ jobs:
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
             gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
 
-      - name: Clone kernel source at branch + commit
+      - name: Clone kernel source (branch) and checkout commit
         run: |
           set -eux
           mkdir -p src
           cd src
 
           git clone --single-branch -b "oneplus/sm8350_u_14.0.0_oneplus9" \
-            https://github.com/OnePlusOSS/android_kernel_oneplus_sm8350.git kernel
+          https://github.com/OnePlusOSS/android_kernel_oneplus_sm8350.git kernel
 
           cd kernel
-          # عشان الشالو كلون ما يجيب الكوميت تلقائياً
-          git fetch --depth=1 origin d95833d
-          git checkout d95833d
-          cd ..
+
+          # جرّب checkout مباشرة (غالبًا ينجح لأن الكلون بدون depth)
+          git checkout 9e38a9f || true
+
+          # إذا فشل (مثلاً لأن الكلون كان shallow في مكان ما)، عمّق تاريخ نفس البرانش ثم أعد المحاولة
+          if ! git rev-parse --verify 9e38a9f >/dev/null 2>&1; then
+            git fetch --deepen=5000 origin "oneplus/sm8350_u_14.0.0_oneplus9"
+            git checkout 9e38a9f
+            fi
+
 
       - name: Clone modules/devicetree repo (same branch)
         run: |
