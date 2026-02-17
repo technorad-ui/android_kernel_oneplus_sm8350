@@ -1,0 +1,61 @@
+name: Build OP9 OOS14 Kernel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "oos14-op9-work" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # (اختياري) لو تريد تثبيت الشجرة على كومت محدد كبداية
+      # - name: Checkout fixed commit
+      #   run: git checkout 9e38a9f
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison flex libssl-dev libelf-dev \
+            build-essential python3 rsync unzip zip \
+            libncurses-dev dwarves git
+
+      # Toolchain: خيار عملي شائع = proton-clang (Clang+LLD)
+      - name: Get proton-clang toolchain
+        run: |
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git toolchain
+          echo "$GITHUB_WORKSPACE/toolchain/bin" >> $GITHUB_PATH
+
+      - name: Prepare config
+        run: |
+          mkdir -p out
+          cp configs/ossi_oos14_defconfig out/.config
+          make O=out ARCH=arm64 olddefconfig
+
+      - name: Build kernel
+        run: |
+          make -j"$(nproc)" O=out ARCH=arm64 \
+            LLVM=1 LLVM_IAS=1 \
+            Image modules dtbs
+
+      # Packaging using AnyKernel3 (OP9 template موجود)
+      - name: Package AnyKernel3 zip
+        run: |
+          git clone --depth=1 https://github.com/dev-sm8350/AnyKernel3.git anykernel
+          # ضع Image في المكان المتوقع
+          cp out/arch/arm64/boot/Image anykernel/
+          cd anykernel
+          zip -r9 "../OP9_OOS14_Kernel.zip" ./*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OP9_OOS14_Kernel
+          path: OP9_OOS14_Kernel.zip
