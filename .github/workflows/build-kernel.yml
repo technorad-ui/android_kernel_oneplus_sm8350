@@ -31,7 +31,6 @@ jobs:
       - name: Get proton-clang toolchain
         run: |
           git clone --depth=1 https://github.com/kdrag0n/proton-clang.git toolchain
-          echo "$GITHUB_WORKSPACE/toolchain/bin" >> $GITHUB_PATH
 
       - name: Prepare config
         run: |
@@ -41,9 +40,27 @@ jobs:
 
       - name: Build kernel
         run: |
+          set -euxo pipefail
+
+            # toolchain paths (لا نضيفها لـ PATH بشكل يسبق /usr/bin)
+            TC="$GITHUB_WORKSPACE/toolchain/bin"
+            export KERNEL_CC="$TC/clang"
+            export KERNEL_LD="$TC/ld.lld"
+
+          mkdir -p out
+          cp configs/ossi_oos14_defconfig out/.config
+          which gcc
+          which ld
+          "$GITHUB_WORKSPACE/toolchain/bin/clang" --version
+
+          make O=out ARCH=arm64 olddefconfig
+
+           # أهم سطر: ثبّت أدوات الـ host على system toolchain
           make -j"$(nproc)" O=out ARCH=arm64 \
-            LLVM=1 LLVM_IAS=1 \
-            Image modules dtbs
+          LLVM=1 LLVM_IAS=1 \
+          HOSTCC=/usr/bin/gcc HOSTCXX=/usr/bin/g++ HOSTLD=/usr/bin/ld \
+          CC="$KERNEL_CC" LD="$KERNEL_LD" \
+          Image modules dtbs
 
       # Packaging using AnyKernel3 (OP9 template موجود)
       - name: Package AnyKernel3 zip
