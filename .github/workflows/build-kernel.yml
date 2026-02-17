@@ -34,8 +34,8 @@ jobs:
 
           cd kernel
           # عشان الشالو كلون ما يجيب الكوميت تلقائياً
-          git fetch --depth=1 origin 9e38a9f
-          git checkout 9e38a9f
+          git fetch --depth=1 origin d95833d
+          git checkout d95833d
           cd ..
 
       - name: Clone modules/devicetree repo (same branch)
